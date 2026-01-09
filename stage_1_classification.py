@@ -27,7 +27,7 @@ LFW_ZIP_PATH = os.path.join(DATA_ROOT, 'LFW', 'archive.zip')
 EXTRACT_DIR = os.path.join(DATA_ROOT, 'LFW_Extracted')        
 LOCAL_IMAGES_DIR = os.path.join(DATA_ROOT, 'Faces')
 MODELS_DIR = './models'
-RESULTS_DIR = './results'
+RESULTS_DIR = './results_stage1'
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(EXTRACT_DIR, exist_ok=True)
@@ -39,20 +39,20 @@ print(f"Використовується пристрій: {DEVICE}")
 
 def extract_lfw_zip():
     if os.listdir(EXTRACT_DIR):
-        print("✅ Папка розпакування не порожня. Пропускаємо розпакування.")
+        print("Папка розпакування не порожня. Пропускаємо розпакування.")
         return
 
     if not os.path.exists(LFW_ZIP_PATH):
-        print(f"❌ Файл архіву не знайдено: {LFW_ZIP_PATH}")
+        print(f"Файл архіву не знайдено: {LFW_ZIP_PATH}")
         exit()
 
-    print(f"⏳ Розпакування {LFW_ZIP_PATH}...")
+    print(f"Розпакування {LFW_ZIP_PATH}...")
     try:
         with zipfile.ZipFile(LFW_ZIP_PATH, 'r') as zip_ref:
             zip_ref.extractall(EXTRACT_DIR)
-        print("✅ Розпакування завершено.")
+        print("Розпакування завершено.")
     except Exception as e:
-        print(f"❌ Помилка розпакування: {e}")
+        print(f"Помилка розпакування: {e}")
         exit()
 
 extract_lfw_zip()
@@ -67,9 +67,9 @@ def find_dataset_root(base_dir):
                 return root 
     return base_dir
 
-print("🔍 Пошук папки з зображеннями...")
+print("Пошук папки з зображеннями...")
 REAL_LFW_ROOT = find_dataset_root(EXTRACT_DIR)
-print(f"📂 Корінь датасету знайдено: {REAL_LFW_ROOT}")
+print(f"Корінь датасету знайдено: {REAL_LFW_ROOT}")
 
 # --- 2. ПІДГОТОВКА ДАНИХ ---
 
@@ -95,10 +95,10 @@ for candidates in possible_targets:
         break
 
 if not target_classes:
-    print("❌ Не знайдено цільових класів!")
+    print("Не знайдено цільових класів!")
     exit()
 
-print(f"✅ Використовуються класи: {target_classes}")
+print(f"Використовуються класи: {target_classes}")
 
 target_indices = [class_to_idx[name] for name in target_classes]
 model_idx_to_name = {i: name.replace('_', ' ') for i, name in enumerate(target_classes)}
@@ -213,7 +213,7 @@ detector = MTCNN(keep_all=False, select_largest=True, device=DEVICE)
 
 def predict_local_image(model, model_name, image_path):
     if not os.path.exists(image_path):
-        print(f"❌ Файл не знайдено: {image_path}")
+        print(f"Файл не знайдено: {image_path}")
         return None, None, None
 
     try:
@@ -267,7 +267,7 @@ def save_result_image(img, pred, conf, original_filename, model_name):
     save_name = f"result_{base_name}_{model_name.replace(' ', '')}.png"
     
     plt.savefig(RESULTS_DIR+'/'+save_name, bbox_inches='tight')
-    print(f"🖼️ Збережено зображення: {save_name}")
+    print(f"Збережено зображення: {save_name}")
     plt.close() # Очищення пам'яті обов'язкове
 
 print("\n=== ЕТАП 1: Тестування моделей на локальних фото ===")
