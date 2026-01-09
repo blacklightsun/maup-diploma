@@ -60,7 +60,7 @@ extract_lfw_zip()
 # --- 1. ПОШУК КОРЕНЯ ДАТАСЕТУ ---
 
 def find_dataset_root(base_dir):
-    target = "Gerhard" 
+    target = "Gerhard_Schroeder" 
     for root, dirs, files in os.walk(base_dir):
         for d in dirs:
             if d.startswith(target):
