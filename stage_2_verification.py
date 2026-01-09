@@ -28,7 +28,6 @@ print(f"Використовується пристрій: {DEVICE}")
 
 # ЗМІНІТЬ ЦЕ ЧИСЛО, щоб вибрати інше фото
 # 0 - перше фото, 1 - друге, і т.д.
-# Рекомендую спробувати 1, 2 або 4 (зазвичай там кращі ракурси)
 ANCHOR_INDEX = 1 
 
 def get_anchor_image_path(desired_index):
@@ -60,16 +59,16 @@ def get_anchor_image_path(desired_index):
     if 0 <= desired_index < len(candidate_files):
         return candidate_files[desired_index]
     else:
-        print(f"⚠️ Індекс {desired_index} виходить за межі (доступно {len(candidate_files)}). Беремо останнє.")
+        print(f"Індекс {desired_index} виходить за межі (доступно {len(candidate_files)}). Беремо останнє.")
         return candidate_files[-1]
 
 anchor_path = get_anchor_image_path(ANCHOR_INDEX)
 
 if not anchor_path:
-    print("❌ Помилка: Не знайдено папку з Герхардом Шрьодером.")
+    print("Помилка: Не знайдено папку з Герхардом Шрьодером.")
     exit()
 
-print(f"✅ Еталон (Anchor) успішно встановлено: {os.path.basename(anchor_path)}")
+print(f"Еталон (Anchor) успішно встановлено: {os.path.basename(anchor_path)}")
 
 
 
@@ -154,7 +153,7 @@ if anchor_emb is None:
     exit()
 
 def run_verification(test_image_path):
-    print(f"\n🔍 Верифікація: {os.path.basename(test_image_path)}")
+    print(f"\nВерифікація: {os.path.basename(test_image_path)}")
     
     # Отримуємо вектор ТЕСТУ
     test_emb, test_img_tensor = get_embedding(model_extractor, test_image_path)
@@ -197,7 +196,7 @@ def run_verification(test_image_path):
     
     save_name = f"stage2_VERIFY_{os.path.basename(test_image_path).split('.')[0]}.png"
     plt.savefig(RESULTS_DIR+'/'+save_name)
-    print(f"   🖼️ Збережено: {save_name}")
+    print(f"   Збережено: {save_name}")
     plt.close()
 
 # --- ЗАПУСК ЕКСПЕРИМЕНТІВ ---

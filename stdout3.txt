@@ -1,0 +1,30 @@
+Використовується пристрій: cpu
+Еталон: Gerhard_Schroeder_0002.jpg
+
+--- Генерація еталонного вектора ---
+
+Аналіз: jeff_1.jpg
+   Euclidean (L2):  1.2909  | Поріг: 1.0 | MISMATCH
+   Cosine (ArcFace): 0.1668 | Поріг: 0.5 | MISMATCH
+   Звіт збережено: ./results_stage3/stage3_jeff_1.png
+
+Аналіз: jeff_2.jpg
+   Euclidean (L2):  1.1433  | Поріг: 1.0 | MISMATCH
+   Cosine (ArcFace): 0.3464 | Поріг: 0.5 | MISMATCH
+   Звіт збережено: ./results_stage3/stage3_jeff_2.png
+
+Аналіз: schroeder_1.jpg
+   Euclidean (L2):  0.5723  | Поріг: 1.0 | MATCH
+   Cosine (ArcFace): 0.8363 | Поріг: 0.5 | MATCH
+   Звіт збережено: ./results_stage3/stage3_schroeder_1.png
+
+Аналіз: schroeder_2.jpg
+   Euclidean (L2):  0.5878  | Поріг: 1.0 | MATCH
+   Cosine (ArcFace): 0.8273 | Поріг: 0.5 | MATCH
+   Звіт збережено: ./results_stage3/stage3_schroeder_2.png
+
+=== ВИСНОВКИ ДЛЯ ДИПЛОМУ (ЕТАП 3) ===
+1. Euclidean Distance - чутлива до магнітуди вектора.
+2. Cosine Similarity (логіка ArcFace) - працює на гіперсфері.
+   Вона краще відокремлює Jeff (значення < 0.3) від Шрьодера (значення > 0.6).
+   Цей метод є більш надійним для задач верифікації.

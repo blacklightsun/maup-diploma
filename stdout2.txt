@@ -1,0 +1,47 @@
+Використовується пристрій: cpu
+
+Знайдено 109 фото для еталону:
+  [0]: Gerhard_Schroeder_0001.jpg
+  [1]: Gerhard_Schroeder_0002.jpg  <--- ВИБРАНО
+  [2]: Gerhard_Schroeder_0003.jpg
+  [3]: Gerhard_Schroeder_0004.jpg
+  [4]: Gerhard_Schroeder_0005.jpg
+Еталон (Anchor) успішно встановлено: Gerhard_Schroeder_0002.jpg
+
+--- Генерація вектора Еталону (Anchor) ---
+
+=== ЧАСТИНА А: Провал Класифікатора (InceptionResnetV1 classify=True) ===
+Очікуємо дуже низьку впевненість або рандомний клас, бо голова не навчена під ці ID.
+[Classify=True]  Файл: jeff_1.jpg      -> ClassID: 1877 | Conf: 0.0917%
+[Classify=True]  Файл: jeff_2.jpg      -> ClassID: 7597 | Conf: 0.0844%
+[Classify=True]  Файл: schroeder_1.jpg -> ClassID: 2494 | Conf: 0.0704%
+[Classify=True]  Файл: schroeder_2.jpg -> ClassID: 2494 | Conf: 0.0876%
+
+=== ЧАСТИНА Б: Успіх Верифікації (Distance Metric) ===
+Порівнюємо всіх з еталоном: Gerhard_Schroeder_0002.jpg
+
+Верифікація: jeff_1.jpg
+   Відстань L2: 1.2909 (Поріг: 1.0)
+   Результат:   ЧУЖИЙ (MISMATCH)
+   Збережено: stage2_VERIFY_jeff_1.png
+
+Верифікація: jeff_2.jpg
+   Відстань L2: 1.1433 (Поріг: 1.0)
+   Результат:   ЧУЖИЙ (MISMATCH)
+   Збережено: stage2_VERIFY_jeff_2.png
+
+Верифікація: schroeder_1.jpg
+   Відстань L2: 0.5723 (Поріг: 1.0)
+   Результат:   ЦЕ ВІН (MATCH)
+   Збережено: stage2_VERIFY_schroeder_1.png
+
+Верифікація: schroeder_2.jpg
+   Відстань L2: 0.5878 (Поріг: 1.0)
+   Результат:   ЦЕ ВІН (MATCH)
+   Збережено: stage2_VERIFY_schroeder_2.png
+
+Висновки для Диплому (Етап 2):
+1. Зображення 'FAIL' показують, що ми не можемо використовувати класифікатор 'з коробки'.
+2. Зображення 'VERIFY' доводять, що порівняння відстаней працює надійно:
+   - Фото Шрьодера з папки Faces мають малу відстань (< 1.0) до еталону з LFW.
+   - Фото Jeff мають велику відстань (> 1.0), що дозволяє відсіяти його як 'Unknown'.

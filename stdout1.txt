@@ -1,0 +1,40 @@
+Використовується пристрій: cpu
+Папка розпакування не порожня. Пропускаємо розпакування.
+Пошук папки з зображеннями...
+Корінь датасету знайдено: ./Data/LFW_Extracted/lfw-deepfunneled/lfw-deepfunneled
+Використовуються класи: ['Gerhard_Schroeder', 'Tony_Blair', 'Colin_Powell', 'George_W_Bush', 'Donald_Rumsfeld']
+Датасет готовий: 1140 фото.
+
+[SimpleCNN] Завантаження збереженої моделі...
+
+[ResNet50] Завантаження збереженої моделі...
+
+=== ЕТАП 1: Тестування моделей на локальних фото ===
+------------------------------------------------------------
+Обробка файлу: jeff_1.jpg
+Модель: SimpleCNN  | Файл: jeff_1.jpg      -> George W Bush (98.79%)
+Збережено зображення: result_jeff_1_SimpleCNN.png
+Модель: ResNet50   | Файл: jeff_1.jpg      -> George W Bush (44.60%)
+Збережено зображення: result_jeff_1_ResNet50.png
+------------------------------------------------------------
+Обробка файлу: jeff_2.jpg
+Модель: SimpleCNN  | Файл: jeff_2.jpg      -> George W Bush (59.36%)
+Збережено зображення: result_jeff_2_SimpleCNN.png
+Модель: ResNet50   | Файл: jeff_2.jpg      -> George W Bush (41.97%)
+Збережено зображення: result_jeff_2_ResNet50.png
+------------------------------------------------------------
+Обробка файлу: schroeder_1.jpg
+Модель: SimpleCNN  | Файл: schroeder_1.jpg -> George W Bush (99.35%)
+Збережено зображення: result_schroeder_1_SimpleCNN.png
+Модель: ResNet50   | Файл: schroeder_1.jpg -> Gerhard Schroeder (80.85%)
+Збережено зображення: result_schroeder_1_ResNet50.png
+------------------------------------------------------------
+Обробка файлу: schroeder_2.jpg
+Модель: SimpleCNN  | Файл: schroeder_2.jpg -> George W Bush (89.78%)
+Збережено зображення: result_schroeder_2_SimpleCNN.png
+Модель: ResNet50   | Файл: schroeder_2.jpg -> Gerhard Schroeder (49.85%)
+Збережено зображення: result_schroeder_2_ResNet50.png
+
+Висновки для Диплому (Етап 1):
+Перевірте збережені зображення. Ви побачите, що для Jeff обидві моделі
+видають хибний результат з високою впевненістю (Галюцинація).

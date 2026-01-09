@@ -1,0 +1,47 @@
+Використовується пристрій для MTCNN: cpu
+Знайдено зображень: 6
+
+Обробка: stock-photo-group-of-young-people.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  8 облич
+   Viola-Jones (n=20): 5 облич
+   MTCNN (conf>0.90):  10 облич
+   MTCNN (conf>0.99):  10 облич
+------------------------------
+Обробка: stock-photo-couple-lying-on-carpet-between-laptop.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  5 облич
+   Viola-Jones (n=20): 0 облич
+   MTCNN (conf>0.90):  0 облич
+   MTCNN (conf>0.99):  0 облич
+------------------------------
+Обробка: stock-photo-couple-talking-at-cafe.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  1 облич
+   Viola-Jones (n=20): 0 облич
+   MTCNN (conf>0.90):  1 облич
+   MTCNN (conf>0.99):  1 облич
+------------------------------
+Обробка: stock-photo-group-of-colleagues.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  9 облич
+   Viola-Jones (n=20): 7 облич
+   MTCNN (conf>0.90):  8 облич
+   MTCNN (conf>0.99):  8 облич
+------------------------------
+Обробка: stock-photo-people-at-nature.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  7 облич
+   Viola-Jones (n=20): 3 облич
+   MTCNN (conf>0.90):  15 облич
+   MTCNN (conf>0.99):  15 облич
+------------------------------
+Обробка: stock-photo-colleagues-in-circle.jpg
+   --- Результати ---
+   Viola-Jones (n=3):  1 облич
+   Viola-Jones (n=20): 1 облич
+   MTCNN (conf>0.90):  4 облич
+   MTCNN (conf>0.99):  2 облич
+------------------------------
+
+Етап 0 завершено. Результат у папці 'results_stage0'.
