@@ -1,0 +1,29 @@
+{
+    "name": "Pytorch Notebook (CPU)",
+    "image": "quay.io/jupyter/pytorch-notebook:latest",
+
+    // Видалено --gpus all, залишено лише shared memory
+    "runArgs": [
+        "--shm-size", "4g"
+    ],
+
+    "postCreateCommand": "pip install --no-cache-dir -r requirements.txt",
+
+    "customizations": {
+        "vscode": {
+            // Ці налаштування застосуються всередині контейнера
+            "settings": {
+                "python.defaultInterpreterPath": "/opt/conda/bin/python"
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "charliermarsh.ruff",
+                "GitHub.copilot"
+            ]
+        }
+    },
+
+    // Працюємо під юзером jovyan, який є дефолтним в цьому образі
+    "remoteUser": "jovyan"
+}

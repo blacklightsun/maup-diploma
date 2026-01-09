@@ -1,32 +1,77 @@
+import matplotlib
+# Вмикаємо "безоконний" режим для збереження файлів на сервері/в контейнері
+matplotlib.use('Agg') 
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
-from mtcnn import MTCNN
-import cv2
+from facenet_pytorch import MTCNN
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import time
+import zipfile
 
 # --- КОНФІГУРАЦІЯ ---
-BATCH_SIZE = 32
-EPOCHS = 10 
+BATCH_SIZE = 16
+EPOCHS = 10
 LEARNING_RATE = 0.001
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Шляхи
-DATA_DIR = './Data/LFW_Cache'       # Кеш датасету
-LOCAL_IMAGES_DIR = './Data/Faces'   # Ваші фото для тестів
-MODELS_DIR = './models'             # Папка для збереження моделей
+DATA_ROOT = './Data'
+LFW_ZIP_PATH = os.path.join(DATA_ROOT, 'LFW', 'archive.zip') 
+EXTRACT_DIR = os.path.join(DATA_ROOT, 'LFW_Extracted')        
+LOCAL_IMAGES_DIR = os.path.join(DATA_ROOT, 'Faces')
+MODELS_DIR = './models'
+RESULTS_DIR = './results'
 
-# Створюємо папку для моделей, якщо немає
 os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(EXTRACT_DIR, exist_ok=True)
+os.makedirs(RESULTS_DIR, exist_ok=True)
 
 print(f"Використовується пристрій: {DEVICE}")
 
-# --- 1. ПІДГОТОВКА ДАНИХ (LFW) ---
+# --- 0. РОЗПАКУВАННЯ ZIP ---
+
+def extract_lfw_zip():
+    if os.listdir(EXTRACT_DIR):
+        print("✅ Папка розпакування не порожня. Пропускаємо розпакування.")
+        return
+
+    if not os.path.exists(LFW_ZIP_PATH):
+        print(f"❌ Файл архіву не знайдено: {LFW_ZIP_PATH}")
+        exit()
+
+    print(f"⏳ Розпакування {LFW_ZIP_PATH}...")
+    try:
+        with zipfile.ZipFile(LFW_ZIP_PATH, 'r') as zip_ref:
+            zip_ref.extractall(EXTRACT_DIR)
+        print("✅ Розпакування завершено.")
+    except Exception as e:
+        print(f"❌ Помилка розпакування: {e}")
+        exit()
+
+extract_lfw_zip()
+
+# --- 1. ПОШУК КОРЕНЯ ДАТАСЕТУ ---
+
+def find_dataset_root(base_dir):
+    target = "Gerhard" 
+    for root, dirs, files in os.walk(base_dir):
+        for d in dirs:
+            if d.startswith(target):
+                return root 
+    return base_dir
+
+print("🔍 Пошук папки з зображеннями...")
+REAL_LFW_ROOT = find_dataset_root(EXTRACT_DIR)
+print(f"📂 Корінь датасету знайдено: {REAL_LFW_ROOT}")
+
+# --- 2. ПІДГОТОВКА ДАНИХ ---
 
 train_transforms = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -34,32 +79,35 @@ train_transforms = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-print("Перевірка/Завантаження датасету LFW...")
-# Завантажуємо датасет
-lfw_dataset = datasets.LFWPeople(root=DATA_DIR, split='train', download=True, transform=train_transforms)
+full_dataset = datasets.ImageFolder(root=REAL_LFW_ROOT, transform=train_transforms)
 
-# Класи для тренування (включаючи Шрьодера)
-target_classes = [
-    "Gerhard Schroeder", 
-    "Tony Blair",
-    "Colin Powell",
-    "George W Bush",
-    "Donald Rumsfeld"
+possible_targets = [
+    ["Gerhard_Schroeder", "Tony_Blair", "Colin_Powell", "George_W_Bush", "Donald_Rumsfeld"],
+    ["Gerhard Schroeder", "Tony Blair", "Colin Powell", "George W Bush", "Donald Rumsfeld"]
 ]
 
-class_to_idx = lfw_dataset.class_to_idx
-target_indices = [class_to_idx[name] for name in target_classes if name in class_to_idx]
+target_classes = []
+class_to_idx = full_dataset.class_to_idx
 
-# Мапа для виводу результатів (0->Gerhard, 1->Tony...)
-model_idx_to_name = {i: name for i, name in enumerate(target_classes)}
+for candidates in possible_targets:
+    if candidates[0] in class_to_idx:
+        target_classes = candidates
+        break
 
-# Фільтрація датасету
+if not target_classes:
+    print("❌ Не знайдено цільових класів!")
+    exit()
+
+print(f"✅ Використовуються класи: {target_classes}")
+
+target_indices = [class_to_idx[name] for name in target_classes]
+model_idx_to_name = {i: name.replace('_', ' ') for i, name in enumerate(target_classes)}
+
 indices = []
-for i, (_, label) in enumerate(lfw_dataset):
+for i, label in enumerate(full_dataset.targets):
     if label in target_indices:
         indices.append(i)
 
-# Кастомний датасет для перепризначення міток у 0..N
 class FilteredDataset(torch.utils.data.Dataset):
     def __init__(self, dataset, indices, original_target_indices):
         self.dataset = dataset
@@ -73,12 +121,12 @@ class FilteredDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.indices)
 
-train_subset = FilteredDataset(lfw_dataset, indices, target_indices)
-train_loader = DataLoader(train_subset, batch_size=BATCH_SIZE, shuffle=True)
+train_subset = FilteredDataset(full_dataset, indices, target_indices)
+train_loader = DataLoader(train_subset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
 
-print(f"Датасет готовий: {len(train_subset)} фото для {len(target_classes)} класів.")
+print(f"Датасет готовий: {len(train_subset)} фото.")
 
-# --- 2. ВИЗНАЧЕННЯ АРХІТЕКТУР ---
+# --- 3. АРХІТЕКТУРИ ---
 
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes):
@@ -99,28 +147,27 @@ class SimpleCNN(nn.Module):
         return self.classifier(self.features(x))
 
 def get_resnet_architecture(num_classes):
-    model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+    model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
     for param in model.parameters():
         param.requires_grad = False
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, num_classes)
     return model
 
-# --- 3. ЛОГІКА "ТРЕНУВАННЯ АБО ЗАВАНТАЖЕННЯ" ---
+# --- 4. ТРЕНУВАННЯ ---
 
 def get_or_train_model(model, name, filename):
     save_path = os.path.join(MODELS_DIR, filename)
     model = model.to(DEVICE)
     
-    # ПЕРЕВІРКА: Чи є вже збережена модель?
     if os.path.exists(save_path):
-        print(f"\n[{name}] Знайдено збережену модель. Завантаження з {save_path}...")
+        print(f"\n[{name}] Завантаження збереженої моделі...")
         model.load_state_dict(torch.load(save_path, map_location=DEVICE))
-        print(f"[{name}] Успішно завантажено.")
         return model
     
-    # Якщо немає - тренуємо
-    print(f"\n[{name}] Збереженої моделі немає. Починаємо тренування...")
+    print(f"\n[{name}] Починаємо тренування на CPU...")
+    start_time = time.time()
+    
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
 
@@ -143,50 +190,52 @@ def get_or_train_model(model, name, filename):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
-        print(f"Epoch {epoch+1}/{EPOCHS} | Loss: {running_loss/len(train_loader):.4f} | Acc: {100 * correct / total:.2f}%")
+        print(f"Epoch {epoch+1}/{EPOCHS} | Loss: {running_loss/len(train_loader):.4f} | Acc: {100 * correct / total:.1f}%")
     
-    # ЗБЕРЕЖЕННЯ
-    print(f"[{name}] Тренування завершено. Збереження у {save_path}...")
+    duration = time.time() - start_time
+    print(f"[{name}] Завершено за {duration:.1f} сек. Збережено в {save_path}")
     torch.save(model.state_dict(), save_path)
     return model
 
-# --- ЗАПУСК ПРОЦЕСУ ---
+# --- ІНІЦІАЛІЗАЦІЯ ---
 
 num_classes = len(target_classes)
 
-# 1. SimpleCNN
 simple_net = SimpleCNN(num_classes)
-simple_model = get_or_train_model(simple_net, "SimpleCNN", "simple_cnn_lfw.pth")
+simple_model = get_or_train_model(simple_net, "SimpleCNN", "simple_cnn_lfw_manual.pth")
 
-# 2. ResNet50
 resnet_net = get_resnet_architecture(num_classes)
-resnet_model = get_or_train_model(resnet_net, "ResNet50", "resnet50_lfw.pth")
+resnet_model = get_or_train_model(resnet_net, "ResNet50", "resnet50_lfw_manual.pth")
 
-# --- 4. ІНФЕРЕНС ---
+# --- 5. ІНФЕРЕНС ТА ЗБЕРЕЖЕННЯ (PyTorch MTCNN) ---
 
-detector = MTCNN()
+detector = MTCNN(keep_all=False, select_largest=True, device=DEVICE)
 
 def predict_local_image(model, model_name, image_path):
     if not os.path.exists(image_path):
         print(f"❌ Файл не знайдено: {image_path}")
         return None, None, None
 
-    img_bgr = cv2.imread(image_path)
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    try:
+        pil_img = Image.open(image_path).convert('RGB')
+    except Exception as e:
+        print(f"Помилка відкриття: {e}")
+        return None, None, None
     
-    results = detector.detect_faces(img_rgb)
-    if not results:
-        print(f"[{model_name}] Обличчя не знайдено на {image_path}")
+    boxes, probs = detector.detect(pil_img)
+    
+    if boxes is None:
+        print(f"[{model_name}] Обличчя не знайдено на {os.path.basename(image_path)}")
         return None, None, None
 
-    best_face = max(results, key=lambda x: x['confidence'])
-    x, y, w, h = best_face['box']
-    x, y = max(0, x), max(0, y)
+    box = boxes[0]
+    x1, y1, x2, y2 = [int(b) for b in box]
+    x1, y1 = max(0, x1), max(0, y1)
     
-    face_img = img_rgb[y:y+h, x:x+w]
-    pil_img = Image.fromarray(face_img).resize((224, 224))
+    face_img = pil_img.crop((x1, y1, x2, y2))
+    face_img_resized = face_img.resize((224, 224))
     
-    input_tensor = train_transforms(pil_img).unsqueeze(0).to(DEVICE)
+    input_tensor = train_transforms(face_img_resized).unsqueeze(0).to(DEVICE)
     
     model.eval()
     with torch.no_grad():
@@ -198,30 +247,49 @@ def predict_local_image(model, model_name, image_path):
     confidence = top_prob.item() * 100
     
     print(f"Модель: {model_name:<10} | Файл: {os.path.basename(image_path):<15} -> {predicted_label} ({confidence:.2f}%)")
-    return pil_img, predicted_label, confidence
+    # Повертаємо зображення та результати
+    return face_img_resized, predicted_label, confidence
+
+# НОВА ФУНКЦІЯ: Збереження результату у файл
+def save_result_image(img, pred, conf, original_filename, model_name):
+    if img is None: return
+    
+    plt.figure(figsize=(3, 3))
+    plt.imshow(img)
+    # Зелений заголовок, якщо впевненість > 70%, інакше червоний
+    title_color = "green" if conf > 70 else "red"
+    # Додаємо назву моделі в заголовок
+    plt.title(f"{model_name}\n{pred}\n{conf:.1f}%", color=title_color, fontsize=10)
+    plt.axis('off')
+    
+    # Формуємо ім'я файлу: result_originalName_ModelName.png
+    base_name = os.path.basename(original_filename).split('.')[0]
+    save_name = f"result_{base_name}_{model_name.replace(' ', '')}.png"
+    
+    plt.savefig(RESULTS_DIR+'/'+save_name, bbox_inches='tight')
+    print(f"🖼️ Збережено зображення: {save_name}")
+    plt.close() # Очищення пам'яті обов'язкове
 
 print("\n=== ЕТАП 1: Тестування моделей на локальних фото ===")
 test_files = [f for f in os.listdir(LOCAL_IMAGES_DIR) if f.lower().endswith(('.jpg', '.png'))]
 test_files.sort()
 
 if not test_files:
-    print(f"У папці {LOCAL_IMAGES_DIR} немає зображень!")
+    print(f"У папці {LOCAL_IMAGES_DIR} немає зображень! Додайте фото (schroeder_1.jpg, abbey_1.jpg).")
 else:
     for file_name in test_files:
         full_path = os.path.join(LOCAL_IMAGES_DIR, file_name)
         print("-" * 60)
+        print(f"Обробка файлу: {file_name}")
         
-        # Тестуємо SimpleCNN
-        predict_local_image(simple_model, "SimpleCNN", full_path)
+        # 1. Тест SimpleCNN
+        img_s, pred_s, conf_s = predict_local_image(simple_model, "SimpleCNN", full_path)
+        save_result_image(img_s, pred_s, conf_s, file_name, "SimpleCNN")
         
-        # Тестуємо ResNet50 (з візуалізацією)
-        img, pred, conf = predict_local_image(resnet_model, "ResNet50", full_path)
-        
-        if img:
-            plt.figure(figsize=(3, 3))
-            plt.imshow(img)
-            # Червоний колір, якщо впевненість низька, зелений - якщо висока
-            title_color = "green" if conf > 70 else "red" 
-            plt.title(f"{pred}\n{conf:.1f}%", color=title_color)
-            plt.axis('off')
-            plt.show()
+        # 2. Тест ResNet50
+        img_r, pred_r, conf_r = predict_local_image(resnet_model, "ResNet50", full_path)
+        save_result_image(img_r, pred_r, conf_r, file_name, "ResNet50")
+
+print("\nВисновки для Диплому (Етап 1):")
+print("Перевірте збережені зображення. Ви побачите, що для Jeff обидві моделі")
+print("видають хибний результат з високою впевненістю (Галюцинація).")

@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
-.devcontainer/
 .env
 .env.*.local
+
+Data/LFW/
+Data/LFW_Extracted
+models/
